@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { theme } from './theme'
 import { useAuth } from './lib/useAuth'
 import { supabase } from './lib/supabaseClient'
-import VersionBadge from './components/VersionBadge'
+// Se ainda não criou o VersionBadge, você pode comentar as 2 linhas abaixo temporariamente:
+// import VersionBadge from './components/VersionBadge'
 
 export default function RootLayout({ children }){
   const session = useAuth(false)
@@ -40,8 +41,14 @@ export default function RootLayout({ children }){
               {session ? <button onClick={doLogout}>Sair</button> : null}
             </nav>
           </header>
+
+          {/* conteúdo das páginas */}
           {children}
-          </div>
+
+          {/* rodapé / badge de versão (opcional) */}
+          {/* <div style={{marginTop:16, display:'flex', justifyContent:'flex-end'}}>
+            <VersionBadge/>
+          </div> */}
         </div>
       </body>
     </html>
