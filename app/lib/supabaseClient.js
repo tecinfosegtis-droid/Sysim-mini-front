@@ -2,6 +2,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(url, anon)
+if (!url) console.warn('NEXT_PUBLIC_SUPABASE_URL não definida')
+if (!key) console.warn('NEXT_PUBLIC_SUPABASE_ANON_KEY não definida')
+
+export const supabase = createClient(url, key)
