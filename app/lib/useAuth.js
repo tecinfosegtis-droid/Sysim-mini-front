@@ -3,21 +3,30 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from './supabaseClient'
 
-export function useAuth(requireAuth=true){
+export function useAuth(requireLogin = false){
   const [session, setSession] = useState(null)
   const router = useRouter()
 
-  useEffect(()=>{
-    supabase.auth.getSession().then(({ data })=>{
-      setSession(data.session)
-      if(requireAuth && !data.session){ router.push('/') }
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s)=>{
+  useEffect(() => {
+    let mounted = true
+
+    async function init(){
+      const { data } = await supabase.auth.getSession()
+      if (mounted){
+        setSession(data.session)
+        if (requireLogin && !data.session) router.push('/')
+      }
+    }
+
+    init()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, s) => {
+      if (!mounted) return
       setSession(s)
-      if(requireAuth && !s){ router.push('/') }
+      if (requireLogin && !s) router.push('/')
     })
-    return () => { sub?.subscription?.unsubscribe?.() }
-  }, [router, requireAuth])
+
+    return () => { mounted = false; subscription?.unsubscribe() }
+  }, [requireLogin, router])
 
   return session
 }
