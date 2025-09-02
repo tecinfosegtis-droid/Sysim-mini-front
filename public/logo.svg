@@ -1,0 +1,11 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <rect rx="8" width="40" height="40" fill="url(#g)"/>
+  <circle cx="20" cy="20" r="10" fill="#0b0f14"/>
+  <text x="52" y="26" font-size="20" font-family="Arial, Helvetica, sans-serif" fill="#e6edf3">Sysim Mini</text>
+</svg>

@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/useAuth'
 
 export default function Page(){
+  useAuth()
   const [agenda, setAgenda] = useState([])
   const [log, setLog] = useState([])
 

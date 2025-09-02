@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/useAuth'
 
 export default function Page(){
+  useAuth()
   const [agenda, setAgenda] = useState([])
   const [oss, setOs] = useState([])
 
@@ -13,9 +15,10 @@ export default function Page(){
   return (
     <div className="card">
       <h2>Painel</h2>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:14, marginTop:8}}>
-        <div className="card"><div className="small">Atendimentos de hoje</div><strong>{agenda.length}</strong></div>
-        <div className="card"><div className="small">OS concluídas</div><strong>{oss.filter(x=>x.status==='Concluído').length}</strong></div>
+      <div className="grid" style={{marginTop:8}}>
+        <div className="card"><div className="small">Atendimentos de hoje</div><strong style={{fontSize:28}}>{agenda.length}</strong></div>
+        <div className="card"><div className="small">OS concluídas</div><strong style={{fontSize:28}}>{oss.filter(x=>x.status==='Concluído').length}</strong></div>
+        <div className="card"><div className="small">Pendentes</div><strong style={{fontSize:28}}>{oss.filter(x=>x.status!=='Concluído').length}</strong></div>
       </div>
     </div>
   )

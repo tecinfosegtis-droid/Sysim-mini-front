@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/useAuth'
 
 export default function Page(){
+  useAuth()
   const [oss, setOs] = useState([])
   const [form, setForm] = useState({condominio:'', tarefas:'', obs:''})
 
@@ -16,7 +18,7 @@ export default function Page(){
   return (
     <div className="card">
       <h2>Ordens de Serviço</h2>
-      <div style={{display:'grid', gap:8, margin:'10px 0 16px'}}>
+      <div style={{display:'grid', gap:8, margin:'10px 0 16px', maxWidth:520}}>
         <label>Condomínio</label>
         <input value={form.condominio} onChange={e=>setForm({...form,condominio:e.target.value})}/>
         <label>Tarefas (separe por vírgula)</label>
