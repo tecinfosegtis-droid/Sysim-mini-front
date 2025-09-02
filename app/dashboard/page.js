@@ -1,5 +1,5 @@
-export const metadata = { title: 'Sysim Mini – Painel' }
 'use client'
+
 import { useEffect, useState } from 'react'
 
 export default function Page(){
@@ -12,20 +12,10 @@ export default function Page(){
   },[])
 
   return (
-    <div className="vstack">
-      <div className="card">
-        <h2>Resumo</h2>
-        <div className="grid">
-          <div className="card vstack">
-            <span className="small">Atendimentos de hoje</span>
-            <strong>{agenda.length}</strong>
-          </div>
-          <div className="card vstack">
-            <span className="small">OS concluídas</span>
-            <strong>{oss.filter(x=>x.status==='Concluído').length}</strong>
-          </div>
-        </div>
-      </div>
+    <div style={{padding:20}}>
+      <h2>Painel</h2>
+      <div>Atendimentos de hoje: <strong>{agenda.length}</strong></div>
+      <div>OS concluídas: <strong>{oss.filter(x=>x.status==='Concluído').length}</strong></div>
     </div>
   )
 }
