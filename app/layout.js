@@ -1,19 +1,31 @@
 'use client'
 import './globals.css'
 import Link from 'next/link'
-import Image from 'next/image'
-import { theme } from './theme'
+import { theme } from '../theme'
+import { useAuth } from '../lib/useAuth'
+import { supabase } from '../lib/supabaseClient'
 
 export default function RootLayout({ children }){
+  const session = useAuth(false)
+
+  async function doLogout(){
+    await supabase.auth.signOut()
+    if (typeof window !== 'undefined') window.location.href = '/'
+  }
+
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+        <title>Sysim Mini</title>
+      </head>
       <body>
         <div className="container">
           <header className="header">
-            <div className="logo">
-              <Image src={theme.logoPath} width={36} height={36} alt="logo"/>
+            <div style={{display:'flex',gap:10,alignItems:'center'}}>
+              <img src="/logo.png" width="36" height="36" alt="logo" style={{borderRadius:8}}/>
               <div>
-                <div style={{fontWeight:900, letterSpacing:.3}}>{theme.name}</div>
+                <div style={{fontWeight:900, letterSpacing:.3}}>{theme?.name || 'Sysim Mini'}</div>
                 <div className="small">Atendimento • Agenda • OS</div>
               </div>
             </div>
@@ -22,17 +34,11 @@ export default function RootLayout({ children }){
               <Link href="/dashboard">Painel</Link>
               <Link href="/agenda">Agenda</Link>
               <Link href="/os">OS</Link>
+              {session ? <button onClick={doLogout}>Sair</button> : null}
             </nav>
           </header>
           {children}
-          <p className="small" style={{marginTop:12}}>Dica: admin@sysim.com / equipe@sysim.com – senha 123456</p>
         </div>
-        <script dangerouslySetInnerHTML={{__html:`
-          // Permite alterar CSS vars com base no theme sem rebuild
-          (function(){
-            var t=${JSON.stringify({"--bg":"var(--bg)","--surface":"var(--surface)","--text":"var(--text)","--muted":"var(--muted)","--brand":"var(--brand)","--brand2":"var(--brand2)"})};
-          })();
-        `}}/>
       </body>
     </html>
   )

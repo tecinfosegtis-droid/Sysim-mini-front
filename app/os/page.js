@@ -1,54 +1,58 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/useAuth'
-
-const KEY='sysim_os_local'
-
-function loadOs(){ if(typeof window==='undefined') return []; try{ return JSON.parse(localStorage.getItem(KEY)||'[]') }catch(e){ return [] } }
-function saveOs(data){ if(typeof window==='undefined') return; localStorage.setItem(KEY, JSON.stringify(data)) }
+import { supabase } from '../lib/supabaseClient'
 
 export default function Page(){
-  useAuth()
+  useAuth(true)
   const [oss, setOs] = useState([])
-  const [form, setForm] = useState({condominio:'', tarefas:'', obs:''})
+  const [form, setForm] = useState({condominio_id:'', tarefas:'', obs:''})
+  const [condos, setCondos] = useState([])
 
-  useEffect(()=>{
-    fetch('/api/os').then(r=>r.json()).then(data=>{
-      const local = loadOs()
-      setOs([...data, ...local])
-    })
-  },[])
+  useEffect(()=>{ load() },[])
 
-  function add(){
-    const entry = { id: Date.now(), condominio: form.condominio, tarefas: (form.tarefas||'').split(',').map(s=>s.trim()).filter(Boolean), status:'Pendente', obs: form.obs }
-    const next=[...oss, entry]
-    setOs(next); saveOs(next.filter(x=>x.id>=1e12)) // salva só os criados no cliente
-    setForm({condominio:'', tarefas:'', obs:''})
+  async function load(){
+    const { data: c } = await supabase.from('condominios').select('id, nome').order('nome')
+    setCondos(c||[])
+    const { data: o } = await supabase.from('os').select('id, condominio_id, tarefas, status, obs, created_at, condominios(nome)').order('created_at', { ascending:false })
+    setOs(o||[])
   }
 
-  function setStatus(id, status){
-    const next = oss.map(o=> o.id===id ? {...o, status} : o)
-    setOs(next); saveOs(next.filter(x=>x.id>=1e12))
+  async function add(){
+    const tarefasArray = (form.tarefas||'').split(',').map(s=>s.trim()).filter(Boolean)
+    const { error } = await supabase.from('os').insert({ condominio_id: form.condominio_id, tarefas: tarefasArray, obs: form.obs })
+    if(error){ console.error(error); return }
+    setForm({condominio_id:'', tarefas:'', obs:''})
+    load()
+  }
+
+  async function setStatus(id, status){
+    const { error } = await supabase.from('os').update({ status }).eq('id', id)
+    if(error){ console.error(error); return }
+    load()
   }
 
   return (
     <div className="card">
       <h2>Ordens de Serviço</h2>
-      <div style={{display:'grid', gap:8, margin:'10px 0 16px', maxWidth:520}}>
+      <div style={{display:'grid', gap:8, margin:'10px 0 16px', maxWidth:620}}>
         <label>Condomínio</label>
-        <input value={form.condominio} onChange={e=>setForm({...form,condominio:e.target.value})}/>
+        <select value={form.condominio_id} onChange={e=>setForm({...form,condominio_id:e.target.value})}>
+          <option value="">Selecione...</option>
+          {condos.map(c=>(<option key={c.id} value={c.id}>{c.nome}</option>))}
+        </select>
         <label>Tarefas (separe por vírgula)</label>
         <input value={form.tarefas} onChange={e=>setForm({...form,tarefas:e.target.value})}/>
         <label>Observações</label>
         <input value={form.obs} onChange={e=>setForm({...form,obs:e.target.value})}/>
-        <button onClick={add}>Adicionar</button>
+        <button onClick={add} disabled={!form.condominio_id}>Adicionar</button>
       </div>
       <table className="table">
         <thead><tr><th>Condomínio</th><th>Tarefas</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>{oss.map(o=>(
           <tr key={o.id}>
-            <td>{o.condominio}</td>
-            <td>{o.tarefas.join(', ')}</td>
+            <td>{o.condominios?.nome || o.condominio_id}</td>
+            <td>{(o.tarefas||[]).join(', ')}</td>
             <td>{o.status}</td>
             <td>
               <button onClick={()=>setStatus(o.id,'Pendente')}>Pendente</button>{' '}
@@ -58,7 +62,6 @@ export default function Page(){
           </tr>
         ))}</tbody>
       </table>
-      <p className="small">As OS criadas aqui ficam salvas neste dispositivo.</p>
     </div>
   )
 }
