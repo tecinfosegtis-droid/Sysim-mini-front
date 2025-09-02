@@ -1,9 +1,9 @@
 'use client'
 import './globals.css'
 import Link from 'next/link'
-import { theme } from './theme'              // <- estava '../theme'
-import { useAuth } from './lib/useAuth'      // <- estava '../lib/useAuth'
-import { supabase } from './lib/supabaseClient' // <- estava '../lib/supabaseClient'
+import { theme } from './theme'
+import { useAuth } from './lib/useAuth'
+import { supabase } from './lib/supabaseClient'
 
 export default function RootLayout({ children }){
   const session = useAuth(false)
@@ -34,6 +34,8 @@ export default function RootLayout({ children }){
               <Link href="/dashboard">Painel</Link>
               <Link href="/agenda">Agenda</Link>
               <Link href="/os">OS</Link>
+              <Link href="/condominios">Condomínios</Link>
+              <Link href="/relatorios">Relatórios</Link>
               {session ? <button onClick={doLogout}>Sair</button> : null}
             </nav>
           </header>
