@@ -41,8 +41,6 @@ export default function RootLayout({ children }){
             </nav>
           </header>
           {children}
-          <div style={{marginTop:16, display:'flex', justifyContent:'flex-end'}}>
-            <VersionBadge/>
           </div>
         </div>
       </body>
