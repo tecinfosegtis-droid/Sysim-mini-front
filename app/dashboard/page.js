@@ -1,15 +1,21 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/useAuth'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Page(){
-  useAuth()
+  useAuth(true)
   const [agenda, setAgenda] = useState([])
   const [oss, setOs] = useState([])
 
   useEffect(()=>{
-    fetch('/api/agenda').then(r=>r.json()).then(setAgenda)
-    fetch('/api/os').then(r=>r.json()).then(setOs)
+    supabase.from('agendamentos')
+      .select('id')
+      .then(({data})=> setAgenda(data||[]))
+    supabase.from('os')
+      .select('id, status')
+      .then(({data})=> setOs(data||[]))
   },[])
 
   return (

@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+export const dynamic = 'force-dynamic'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabaseClient'
 
@@ -11,29 +12,27 @@ function todayRange(){
 }
 
 export default function Page(){
-  const session = useAuth(true)
-  const [ag, setAg] = useState([])       // agendamentos
-  const [vis, setVis] = useState({})     // visitas por agendamento id
+  useAuth(true)
+  const [ag, setAg] = useState([])
+  const [vis, setVis] = useState({})
 
-  useEffect(()=>{ if(!session) return; load() },[session])
+  useEffect(()=>{ load() },[])
 
   async function load(){
     const { start, end } = todayRange()
-    const { data: ags, error } = await supabase
+    const { data: ags } = await supabase
       .from('agendamentos')
       .select('id, inicio, fim, condominio_id, condominios(nome)')
       .gte('inicio', start).lte('inicio', end)
       .order('inicio', { ascending:true })
-    if(error){ console.error(error); return }
-    setAg(ags || [])
+    setAg(ags||[])
 
     const ids = (ags||[]).map(a=>a.id)
     if(ids.length){
       const { data: v } = await supabase.from('visitas')
         .select('id, agendamento_id, inicio, fim, duracao_min')
         .in('agendamento_id', ids)
-      const map = {}
-      ;(v||[]).forEach(x=>{ map[x.agendamento_id] = x })
+      const map = {}; (v||[]).forEach(x=> map[x.agendamento_id] = x)
       setVis(map)
     } else {
       setVis({})
@@ -41,23 +40,17 @@ export default function Page(){
   }
 
   async function checkIn(a){
-    const { data, error } = await supabase
-      .from('visitas')
-      .insert({ condominio_id:a.condominio_id, agendamento_id:a.id, inicio: new Date().toISOString() })
-      .select().single()
-    if(error){ console.error(error); return }
+    const { data } = await supabase.from('visitas').insert({
+      condominio_id:a.condominio_id, agendamento_id:a.id, inicio: new Date().toISOString()
+    }).select().single()
     setVis(prev=>({ ...prev, [a.id]: data }))
   }
 
   async function checkOut(a){
-    const v = vis[a.id]
-    if(!v){ return }
-    const { data, error } = await supabase
-      .from('visitas')
-      .update({ fim: new Date().toISOString() })
-      .eq('id', v.id)
-      .select().single()
-    if(error){ console.error(error); return }
+    const v = vis[a.id]; if(!v) return
+    const { data } = await supabase.from('visitas').update({
+      fim: new Date().toISOString()
+    }).eq('id', v.id).select().single()
     setVis(prev=>({ ...prev, [a.id]: data }))
   }
 
@@ -88,7 +81,6 @@ export default function Page(){
           })}
         </tbody>
       </table>
-      <p className="small">A duração é calculada automaticamente após o Check-out.</p>
     </div>
   )
 }
