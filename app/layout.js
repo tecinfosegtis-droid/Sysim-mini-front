@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { theme } from './theme'
 import { useAuth } from './lib/useAuth'
 import { supabase } from './lib/supabaseClient'
+import VersionBadge from './components/VersionBadge'
 
 export default function RootLayout({ children }){
   const session = useAuth(false)
@@ -40,6 +41,9 @@ export default function RootLayout({ children }){
             </nav>
           </header>
           {children}
+          <div style={{marginTop:16, display:'flex', justifyContent:'flex-end'}}>
+            <VersionBadge/>
+          </div>
         </div>
       </body>
     </html>

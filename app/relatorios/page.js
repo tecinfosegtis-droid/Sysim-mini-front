@@ -43,21 +43,14 @@ export default function Page(){
     }).sort((a,b)=> a.nome.localeCompare(b.nome))
   }, [condos, vis])
 
-  function ym(val){ // YYYY-MM para input month
-    const d = new Date(val)
-    const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0')
-    return `${y}-${m}`
-  }
+  function ym(val){ const d = new Date(val); const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); return `${y}-${m}` }
 
   return (
     <div className="card">
       <h2>Relatório — Horas contratadas x realizadas</h2>
       <div style={{margin:'10px 0 16px'}}>
         <label>Mês de referência:&nbsp;</label>
-        <input type="month" value={ym(refDate)} onChange={e=>{
-          const [Y,M] = e.target.value.split('-')
-          setRefDate(new Date(Number(Y), Number(M)-1, 1))
-        }} />
+        <input type="month" value={ym(refDate)} onChange={e=>{ const [Y,M] = e.target.value.split('-'); setRefDate(new Date(Number(Y), Number(M)-1, 1)) }} />
       </div>
       <table className="table">
         <thead><tr><th>Condomínio</th><th>Min (contratados)</th><th>Min (realizados)</th><th>Saldo (min)</th><th>Saldo (horas)</th></tr></thead>
