@@ -2,17 +2,33 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/useAuth'
 
+const KEY='sysim_os_local'
+
+function loadOs(){ if(typeof window==='undefined') return []; try{ return JSON.parse(localStorage.getItem(KEY)||'[]') }catch(e){ return [] } }
+function saveOs(data){ if(typeof window==='undefined') return; localStorage.setItem(KEY, JSON.stringify(data)) }
+
 export default function Page(){
   useAuth()
   const [oss, setOs] = useState([])
   const [form, setForm] = useState({condominio:'', tarefas:'', obs:''})
 
-  useEffect(()=>{ fetch('/api/os').then(r=>r.json()).then(setOs) },[])
+  useEffect(()=>{
+    fetch('/api/os').then(r=>r.json()).then(data=>{
+      const local = loadOs()
+      setOs([...data, ...local])
+    })
+  },[])
 
   function add(){
     const entry = { id: Date.now(), condominio: form.condominio, tarefas: (form.tarefas||'').split(',').map(s=>s.trim()).filter(Boolean), status:'Pendente', obs: form.obs }
-    setOs(prev=>[...prev, entry])
+    const next=[...oss, entry]
+    setOs(next); saveOs(next.filter(x=>x.id>=1e12)) // salva só os criados no cliente
     setForm({condominio:'', tarefas:'', obs:''})
+  }
+
+  function setStatus(id, status){
+    const next = oss.map(o=> o.id===id ? {...o, status} : o)
+    setOs(next); saveOs(next.filter(x=>x.id>=1e12))
   }
 
   return (
@@ -28,9 +44,21 @@ export default function Page(){
         <button onClick={add}>Adicionar</button>
       </div>
       <table className="table">
-        <thead><tr><th>Condomínio</th><th>Tarefas</th><th>Status</th></tr></thead>
-        <tbody>{oss.map(o=>(<tr key={o.id}><td>{o.condominio}</td><td>{o.tarefas.join(', ')}</td><td>{o.status}</td></tr>))}</tbody>
+        <thead><tr><th>Condomínio</th><th>Tarefas</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>{oss.map(o=>(
+          <tr key={o.id}>
+            <td>{o.condominio}</td>
+            <td>{o.tarefas.join(', ')}</td>
+            <td>{o.status}</td>
+            <td>
+              <button onClick={()=>setStatus(o.id,'Pendente')}>Pendente</button>{' '}
+              <button onClick={()=>setStatus(o.id,'Em andamento')}>Em andamento</button>{' '}
+              <button onClick={()=>setStatus(o.id,'Concluído')}>Concluir</button>
+            </td>
+          </tr>
+        ))}</tbody>
       </table>
+      <p className="small">As OS criadas aqui ficam salvas neste dispositivo.</p>
     </div>
   )
 }
