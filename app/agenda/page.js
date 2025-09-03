@@ -1,121 +1,126 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAuth } from '../lib/useAuth'
+export const metadata = { title: 'Sysim Mini – Agenda' }
+
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { ensureNotificationReady, getDefaultMinutes, setDefaultMinutes, sendNotification } from '../lib/notify'
 
-function todayRange(){
-  const d = new Date()
-  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0).toISOString()
-  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59).toISOString()
-  return { start, end }
-}
+function iso(dt) { return new Date(dt).toISOString() }
+function fmt(dt) { if (!dt) return '-'; const d = new Date(dt); return d.toLocaleString() }
 
-function toTime(ts){
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
-}
+export default function Page() {
+  const [condos, setCondos] = useState([])
+  const [lista, setLista] = useState([])
+  const [condominioId, setCondominioId] = useState('')
+  const [prevDe, setPrevDe] = useState('')
+  const [prevAte, setPrevAte] = useState('')
+  const [obs, setObs] = useState('')
 
-export default function Page(){
-  useAuth(true)
-  const [ag, setAg] = useState([])
-  const [vis, setVis] = useState({})
-  const [minutes, setMinutes] = useState(getDefaultMinutes())
-  const triggeredRef = useRef({}) // evita notificar duas vezes
-
-  useEffect(()=>{ load(); ensureNotificationReady() },[])
-  useEffect(()=>{ setDefaultMinutes(minutes) },[minutes])
-
-  async function load(){
-    const { start, end } = todayRange()
-    const { data: ags } = await supabase
-      .from('agendamentos')
-      .select('id, inicio, fim, condominio_id, condominios(nome,endereco)')
-      .gte('inicio', start).lte('inicio', end)
-      .order('inicio', { ascending:true })
-    setAg(ags||[])
-
-    const ids = (ags||[]).map(a=>a.id)
-    if(ids.length){
-      const { data: v } = await supabase.from('visitas')
-        .select('id, agendamento_id, inicio, fim, duracao_min')
-        .in('agendamento_id', ids)
-      const map = {}; (v||[]).forEach(x=> map[x.agendamento_id] = x)
-      setVis(map)
-    } else {
-      setVis({})
-    }
+  async function carregarCondos() {
+    const { data, error } = await supabase.from('condominios').select('id, nome').order('nome')
+    if (error) alert(error.message)
+    setCondos(data || [])
+    if (data?.[0] && !condominioId) setCondominioId(data[0].id)
   }
 
-  // checagem de lembretes a cada 30s
-  useEffect(()=>{
-    const t = setInterval(()=>{
-      const now = Date.now()
-      for(const a of ag){
-        const start = new Date(a.inicio).getTime()
-        const diffMin = Math.round((start - now) / 60000)
-        if (diffMin <= minutes && diffMin >= (minutes-1)) {
-          if(!triggeredRef.current[a.id]){
-            triggeredRef.current[a.id] = true
-            const nome = a.condominios?.nome || 'Condomínio'
-            const body = `Começa às ${toTime(a.inicio)} • ${nome}`
-            sendNotification({ title: 'Lembrete de atendimento', body })
-          }
-        }
-      }
-    }, 30000)
-    return ()=> clearInterval(t)
-  }, [ag, minutes])
-
-  async function checkIn(a){
-    const { data } = await supabase.from('visitas').insert({
-      condominio_id:a.condominio_id, agendamento_id:a.id, inicio: new Date().toISOString()
-    }).select().single()
-    setVis(prev=>({ ...prev, [a.id]: data }))
+  async function carregarAgenda() {
+    // join para trazer nome do condomínio
+    const { data, error } = await supabase
+      .from('agenda')
+      .select('id, condominio_id, previsto_de, previsto_ate, checkin_at, checkout_at, observacoes, condominios ( nome )')
+      .order('previsto_de', { ascending: true })
+    if (error) alert(error.message)
+    setLista(data || [])
   }
 
-  async function checkOut(a){
-    const v = vis[a.id]; if(!v) return
-    const { data } = await supabase.from('visitas').update({
-      fim: new Date().toISOString()
-    }).eq('id', v.id).select().single()
-    setVis(prev=>({ ...prev, [a.id]: data }))
+  async function agendar(e) {
+    e.preventDefault()
+    if (!condominioId || !prevDe || !prevAte) return alert('Preencha condomínio e horários')
+    const { error } = await supabase.from('agenda').insert([{
+      condominio_id: condominioId,
+      previsto_de: iso(prevDe),
+      previsto_ate: iso(prevAte),
+      observacoes: obs || null
+    }])
+    if (error) return alert(error.message)
+    setPrevDe(''); setPrevAte(''); setObs('')
+    carregarAgenda()
   }
+
+  async function checkin(id) {
+    const { error } = await supabase.from('agenda').update({ checkin_at: new Date().toISOString() }).eq('id', id)
+    if (error) return alert(error.message)
+    carregarAgenda()
+  }
+
+  async function checkout(id) {
+    const { error } = await supabase.from('agenda').update({ checkout_at: new Date().toISOString() }).eq('id', id)
+    if (error) return alert(error.message)
+    carregarAgenda()
+  }
+
+  useEffect(() => { carregarCondos(); carregarAgenda() }, [])
 
   return (
-    <div className="card">
-      <h2>Agenda de hoje</h2>
+    <div className="page">
+      <h1>Agenda</h1>
 
-      <div style={{display:'flex', gap:12, alignItems:'center', margin:'8px 0 14px'}}>
-        <label className="small">Lembrar antes (min):</label>
-        <input type="number" min={1} max={240} value={minutes} onChange={e=>setMinutes(Number(e.target.value||15))} style={{width:100}} />
-        <span className="small">Ative as notificações do navegador para receber os alertas.</span>
-      </div>
+      <form onSubmit={agendar} className="card" style={{ marginBottom: 24 }}>
+        <div className="grid">
+          <label>Condomínio
+            <select value={condominioId} onChange={e=>setCondominioId(e.target.value)}>
+              {condos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </label>
+          <label>Previsto de
+            <input type="datetime-local" value={prevDe} onChange={e=>setPrevDe(e.target.value)} />
+          </label>
+          <label>Previsto até
+            <input type="datetime-local" value={prevAte} onChange={e=>setPrevAte(e.target.value)} />
+          </label>
+          <label>Observações
+            <input value={obs} onChange={e=>setObs(e.target.value)} placeholder="Opcional" />
+          </label>
+        </div>
+        <button type="submit">Agendar</button>
+      </form>
 
-      <table className="table">
-        <thead><tr><th>Condomínio</th><th>Início</th><th>Fim</th><th>Check-in</th><th>Check-out</th><th>Duração</th><th>Ações</th></tr></thead>
-        <tbody>
-          {ag.map(a=>{
-            const v = vis[a.id] || {}
-            const nome = a.condominios?.nome || '--'
-            return (
+      <div className="card">
+        <h2>Agendas</h2>
+        {lista.length === 0 && <p>Nenhum item.</p>}
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Condomínio</th><th>Previsto</th><th>Check-in</th><th>Check-out</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map(a => (
               <tr key={a.id}>
-                <td>{nome}</td>
-                <td>{toTime(a.inicio)}</td>
-                <td>{toTime(a.fim)}</td>
-                <td>{v.inicio ? toTime(v.inicio) : '-'}</td>
-                <td>{v.fim ? toTime(v.fim) : '-'}</td>
-                <td>{v.duracao_min ?? '-'}</td>
-                <td>
-                  <button onClick={()=>checkIn(a)} disabled={!!v.inicio}>Check-in</button>{' '}
-                  <button onClick={()=>checkOut(a)} disabled={!v.inicio || !!v.fim}>Check-out</button>{' '}
-                  <a className="badge" target="_blank" href={`https://waze.com/ul?q=${encodeURIComponent(a.condominios?.endereco || nome)}`}>Waze</a>
+                <td>{a.condominios?.nome || a.condominio_id}</td>
+                <td>{fmt(a.previsto_de)} → {fmt(a.previsto_ate)}</td>
+                <td>{fmt(a.checkin_at)}</td>
+                <td>{fmt(a.checkout_at)}</td>
+                <td style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => checkin(a.id)}>Check-in</button>
+                  <button onClick={() => checkout(a.id)}>Check-out</button>
                 </td>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <style jsx>{`
+        .page { padding: 24px; }
+        .card { background: #111820; border-radius: 12px; padding: 16px; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+        @media (max-width: 700px){ .grid{ grid-template-columns: 1fr } }
+        label { display: grid; gap: 6px; font-size: 14px; }
+        input, button, select, textarea { background: #0b131a; border: 1px solid #223; color: #e5f3ff; padding: 10px; border-radius: 8px; }
+        button { cursor: pointer; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .table th, .table td { border-top: 1px solid #223; padding: 8px; text-align: left; }
+      `}</style>
     </div>
   )
 }
