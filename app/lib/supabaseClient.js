@@ -1,10 +1,9 @@
-'use client'
+// app/lib/supabaseClient.js
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!url) console.warn('NEXT_PUBLIC_SUPABASE_URL não definida')
-if (!key) console.warn('NEXT_PUBLIC_SUPABASE_ANON_KEY não definida')
+// (não colocar ! pra não quebrar build se a var faltar; nas telas tratamos o erro)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-export const supabase = createClient(url, key)
