@@ -1,5 +1,13 @@
 'use client'
-export const metadata = { title: 'Sysim Mini – Agenda' }
+// NUNCA coloque 'use client' aqui
+export const metadata = {
+  title: 'Sysim Mini – Agenda',
+};
+
+export default function AgendaLayout({ children }) {
+  return children;
+}
+
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
