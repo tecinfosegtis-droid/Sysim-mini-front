@@ -1,5 +1,12 @@
 'use client'
-export const metadata = { title: 'Sysim Mini – OS' }
+export const metadata = {
+  title: 'Sysim Mini – OS',
+};
+
+export default function OSLayout({ children }) {
+  return children;
+}
+
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
